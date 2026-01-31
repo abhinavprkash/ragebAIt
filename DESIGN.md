@@ -17,7 +17,7 @@ CLI tool that takes images/videos with their descriptions and uses Browser-Use C
 ragebAIt/
 ├── main.py              # Entry point — reads input and triggers posting
 ├── poster.py            # Browser-Use Cloud: post media + caption to X
-├── requirements.txt     # Dependencies
+├── pyproject.toml       # Project config & dependencies (managed by uv)
 ├── .env.example         # Template for API keys
 └── DESIGN.md            # This file
 ```
@@ -70,11 +70,9 @@ Handles browser automation via Browser-Use Cloud to post on X.
 
 ## Dependencies
 
-### `requirements.txt`
-```
-browser-use
-python-dotenv
-```
+Managed via `uv` and `pyproject.toml`:
+- `browser-use`
+- `python-dotenv`
 
 ### `.env.example`
 ```
@@ -94,21 +92,21 @@ X_PASSWORD=your-x-password
 ## How to Run
 ```bash
 # 1. Install deps
-pip install -r requirements.txt
+uv sync
 
 # 2. Copy and fill in keys
 cp .env.example .env
 # Edit .env with your BROWSER_USE_API_KEY, X_USERNAME, X_PASSWORD
 
 # 3. Run with a file and caption
-python main.py ./photo.jpg "just vibes"
+uv run main.py ./photo.jpg "just vibes"
 
 # Or run interactively
-python main.py
+uv run main.py
 ```
 
 ## Verification
-1. Run `python main.py ./test.jpg "test post please ignore"`
+1. Run `uv run main.py ./test.jpg "test post please ignore"`
 2. Approve the caption (type `y`)
 3. Watch the cloud browser agent log in, navigate, and post
 4. Check X to confirm the post appeared with correct caption + media
