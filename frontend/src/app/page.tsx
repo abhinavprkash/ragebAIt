@@ -3,35 +3,56 @@
 import React, { useState } from "react";
 import { VideoUploader } from "@/components/VideoUploader";
 import { LensSelector } from "@/components/LensSelector";
-import { BrowserFeeds } from "@/components/BrowserFeeds"; // Import the new component
+import { BrowserFeeds } from "@/components/BrowserFeeds";
 import { Button } from "@/components/ui/button";
-import { Loader2, Zap } from "lucide-react";
+import { Loader2, Zap, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 import { useSessions } from "@/lib/session-context";
+import { api } from "@/lib/api";
 
 export default function Home() {
   const router = useRouter();
-  const { addSession } = useSessions(); // Use the hook
+  const { addSession } = useSessions();
   const [file, setFile] = useState<File | null>(null);
-  const [selectedLens, setSelectedLens] = useState<string>("roast_master");
+  const [selectedLens, setSelectedLens] = useState<string>("nature_documentary");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState<string>("");
 
   const handleGenerate = async () => {
+    if (!file) {
+      toast.error("Please upload a video first");
+      return;
+    }
+
     setIsGenerating(true);
-    console.log("Generating with:", { file, selectedLens });
+    setProgress("Uploading video...");
 
-    // Create detailed title based on input
-    const title = file ? `Analysis: ${file.name}` : `Roast: ${selectedLens}`;
+    try {
+      // Start the generation job
+      toast.info("Starting video analysis... This may take 2-5 minutes.");
+      setProgress("🔍 Finding funny scenes in video...");
 
-    setTimeout(() => {
-      addSession(title); // Add to sidebar
+      const { job_id } = await api.startRoast(file, selectedLens);
+
+      // Create session entry
+      const title = `${file.name} - ${selectedLens}`;
+      addSession(title);
+
+      // Navigate to result page
+      setProgress("Redirecting to results...");
+      router.push(`/result/${job_id}`);
+      
+    } catch (error) {
+      console.error("Generation failed:", error);
+      toast.error(error instanceof Error ? error.message : "Generation failed");
       setIsGenerating(false);
-      router.push(`/result/${Date.now()}`); // Navigate to new ID
-    }, 2000);
+      setProgress("");
+    }
   };
 
   return (
@@ -42,7 +63,7 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           className="text-5xl font-bold tracking-tight text-white mb-2 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent"
         >
-          Gemini 3 <span className="text-primary font-normal">SuperHack</span>
+          ragebAIt <span className="text-primary font-normal">🔥</span>
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: -20 }}
@@ -50,7 +71,7 @@ export default function Home() {
           transition={{ delay: 0.1 }}
           className="text-xl text-white/60 font-light"
         >
-          Multimodal Sports Analysis & Roast Agent
+          AI Sports Ragebait Generator - Turn clips into viral content
         </motion.p>
       </header>
 
@@ -96,28 +117,46 @@ export default function Home() {
 
           <div className="bg-gradient-to-br from-primary/20 to-purple-900/20 border border-primary/20 rounded-2xl p-6 backdrop-blur-md">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-medium text-white">Analysis Ready</h3>
+              <h3 className="text-lg font-medium text-white">
+                {isGenerating ? "Processing..." : "Ready to Generate"}
+              </h3>
               <div className="flex items-center gap-2 text-xs text-primary font-mono uppercase">
                 <Zap className="w-4 h-4 fill-primary" />
-                Gemini-2.0-Flash
+                Gemini-3-Flash + fal.ai
               </div>
             </div>
+
+            {isGenerating && progress && (
+              <div className="mb-4 p-3 bg-black/30 rounded-lg border border-white/10">
+                <p className="text-sm text-white/80 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  {progress}
+                </p>
+              </div>
+            )}
 
             <Button
               size="lg"
               className="w-full text-lg h-14 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-[0_0_30px_rgba(var(--primary),0.3)] transition-all hover:scale-[1.02]"
-              disabled={!file && !isGenerating}
+              disabled={!file || isGenerating}
               onClick={handleGenerate}
             >
               {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Processing...
+                  Generating Ragebait...
                 </>
               ) : (
-                "Bake the Roast"
+                "🔥 Generate Viral Clip"
               )}
             </Button>
+
+            {!file && (
+              <p className="text-xs text-white/40 text-center mt-3 flex items-center justify-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                Upload a video to get started
+              </p>
+            )}
           </div>
         </div>
 

@@ -3,16 +3,17 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Check, Info, Skull, BookOpen, Gavel, Briefcase, Flame } from "lucide-react";
+import { Check, Skull, BookOpen, Clapperboard, ChefHat, Theater, Briefcase, Radio } from "lucide-react";
 
+// Match backend lens IDs from backend/prompts/lenses.py
 export const LENSES = [
-    { id: "roast_master", name: "Drill Sergeant", icon: Skull, description: "Brutal honesty. No mercy." },
-    { id: "nature_doc", name: "Nature Doc", icon: BookOpen, description: "Narrated like a wild animal hunt." },
-    //   { id: "heist_movie", name: "Heist Movie", icon: Share2, description: "High stakes, intense music." },
-    //   { id: "alien", name: "Alien Study", icon: User, description: "Confused observation of humans." },
-    { id: "shakespeare", name: "Shakespeare", icon: Gavel, description: "Dramatic tragedy of your form." },
-    { id: "corporate", name: "Corporate", icon: Briefcase, description: "Passive aggressive HR feedback." },
-    { id: "hype_man", name: "Hype Man", icon: Flame, description: "Over-the-top excitement." },
+    { id: "nature_documentary", name: "Nature Doc", icon: BookOpen, description: "David Attenborough narrates the wild." },
+    { id: "heist_movie", name: "Heist Movie", icon: Clapperboard, description: "High stakes thriller narration." },
+    { id: "alien_anthropologist", name: "Alien Study", icon: Skull, description: "Confused alien observing humans." },
+    { id: "cooking_show", name: "Cooking Show", icon: ChefHat, description: "Chef's kiss! Magnifico!" },
+    { id: "shakespearean", name: "Shakespeare", icon: Theater, description: "Dramatic tragedy of sports." },
+    { id: "corporate_meeting", name: "Corporate", icon: Briefcase, description: "Let's circle back on that play." },
+    { id: "true_crime", name: "True Crime", icon: Radio, description: "Suspenseful podcast style." },
 ];
 
 interface LensSelectorProps {
@@ -31,7 +32,7 @@ export function LensSelector({ selectedLens, onSelectLens }: LensSelectorProps) 
                 <span className="text-xs text-white/40 font-mono">STEP 02</span>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
                 {LENSES.map((lens) => {
                     const isSelected = selectedLens === lens.id;
                     const Icon = lens.icon;
@@ -55,11 +56,11 @@ export function LensSelector({ selectedLens, onSelectLens }: LensSelectorProps) 
                                 </div>
                             )}
 
-                            <div className="p-4 flex flex-col items-center text-center gap-3 h-full">
-                                <Icon className={cn("w-10 h-10 mb-1 transition-colors", isSelected ? "text-primary" : "text-white")} />
+                            <div className="p-3 flex flex-col items-center text-center gap-2 h-full">
+                                <Icon className={cn("w-8 h-8 transition-colors", isSelected ? "text-primary" : "text-white")} />
                                 <div>
-                                    <div className="font-bold text-sm text-white">{lens.name}</div>
-                                    <div className="text-[10px] text-white/50 leading-tight mt-1 line-clamp-2">
+                                    <div className="font-bold text-xs text-white">{lens.name}</div>
+                                    <div className="text-[9px] text-white/50 leading-tight mt-1 line-clamp-2">
                                         {lens.description}
                                     </div>
                                 </div>

@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Twitter, Newspaper, ArrowUpRight, Radio } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Twitter, Newspaper, ArrowUpRight } from "lucide-react";
 
 // Mock Data representing what "Browser Use" would fetch
 const LIVE_FEED = [
@@ -80,7 +81,5 @@ export function BrowserFeeds() {
                 </div>
             </ScrollArea>
         </Card>
-    )
+    );
 }
-
-import { Button } from "@/components/ui/button";
