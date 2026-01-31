@@ -1,134 +1,114 @@
-# Social Media Manager AI Agent — MVP Design
+# Social Media Poster Agent — MVP Design
 
 ## Overview
-CLI tool that watches a local folder for images/videos, uses Gemini to generate funny captions, shows them for human approval, then uses browser-use to post to X.
+CLI tool that takes images/videos with their descriptions and uses Browser-Use Cloud to post them to X (Twitter) via browser automation.
 
 ## Architecture
 ```
- ./media/          Gemini API         Terminal          browser-use         X (Twitter)
- ┌──────┐        ┌───────────┐      ┌────────┐       ┌───────────┐      ┌──────────┐
- │image/ │──────▶│ Analyze &  │─────▶│ Show   │──────▶│ Open X,   │─────▶│ Published│
- │video  │       │ Caption    │      │ Approve│       │ Upload &  │      │ Post     │
- └──────┘        └───────────┘      └────────┘       │ Post      │      └──────────┘
-                                        │             └───────────┘
-                                     [Edit/Skip]
+ Input (media + caption)       Browser-Use Cloud          X (Twitter)
+ ┌────────────────────┐       ┌───────────────────┐      ┌──────────┐
+ │ image/video path   │──────▶│ Open X, upload     │─────▶│ Published│
+ │ + description      │       │ media & post       │      │ Post     │
+ └────────────────────┘       └───────────────────┘      └──────────┘
 ```
 
 ## Project Structure
 ```
-GeminiHackathon2026/
-├── main.py              # Entry point — orchestrates the full flow
-├── caption.py           # Gemini API: analyze media → generate caption
-├── poster.py            # browser-use: post media + caption to X
+ragebAIt/
+├── main.py              # Entry point — reads input and triggers posting
+├── poster.py            # Browser-Use Cloud: post media + caption to X
 ├── requirements.txt     # Dependencies
 ├── .env.example         # Template for API keys
-├── DESIGN.md            # This file
-└── media/               # Drop images/videos here (created at runtime)
-    └── posted/          # Successfully posted files moved here
+└── DESIGN.md            # This file
 ```
 
 ## Flow
 ```
-1. Scan ./media/ for new image/video files
-2. For each file:
-   a. Send to Gemini → get funny caption
-   b. Print caption to terminal, ask user: [Y]es / [E]dit / [S]kip
-   c. If approved → browser-use agent posts to X with the file + caption
-   d. On success → move file to ./media/posted/
-3. Exit when all files processed
+1. User provides media file path + description (via CLI args or prompt)
+2. Confirm post with user: [Y]es / [E]dit / [S]kip
+3. If approved → Browser-Use Cloud agent posts to X with the file + caption
+4. Report success/failure
 ```
 
 ## File Details
 
-### `main.py` (~60 lines)
-Entry point. Scans `./media/` for supported files and orchestrates the caption → approve → post loop.
+### `main.py` (~40 lines)
+Entry point. Accepts a media file path and description, then hands off to the poster.
 
+- Accepts CLI args: `python main.py <filepath> "<caption>"`
+- Or prompts interactively if no args given
 - Supported formats: `.jpg`, `.png`, `.gif`, `.webp`, `.mp4`, `.mov`
-- Creates `./media/` and `./media/posted/` dirs if missing
-- Loop through each file:
-  - Call `caption.generate_caption(filepath)` → get caption string
-  - Print caption, prompt user: `[Y]es / [E]dit / [S]kip`
-  - Call `poster.post_to_x(filepath, caption)` → post via browser-use
-  - On success, move file to `./media/posted/`
+- Shows the caption, prompts user: `[Y]es / [E]dit / [S]kip`
+- Calls `poster.post_to_x(filepath, caption)`
 - Uses `asyncio.run()` as entry point
 
-### `caption.py` (~30 lines)
-Handles Gemini API calls for caption generation.
-
-- `generate_caption(filepath: str) -> str`
-- Images: load via PIL, pass directly to Gemini
-- Videos: use Gemini's File API to upload first
-- API call:
-  ```python
-  from google import genai
-  client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-  response = client.models.generate_content(
-      model="gemini-2.5-flash",
-      contents=[media, PROMPT]
-  )
-  ```
-- System prompt: *"You are a witty social media manager. Generate a short, funny, viral-worthy caption for this image/video to post on X (Twitter). Keep it under 280 characters. Just return the caption text, nothing else."*
-
-### `poster.py` (~40 lines)
-Handles browser automation to post on X.
+### `poster.py` (~30 lines)
+Handles browser automation via Browser-Use Cloud to post on X.
 
 - `async post_to_x(filepath: str, caption: str) -> bool`
-- Uses persistent browser profile so X login is remembered across runs:
+- Uses Browser-Use Cloud (no local browser needed):
   ```python
-  browser = Browser(
-      headless=False,
-      user_data_dir="~/.config/browseruse/profiles/x-poster",
-  )
+  from browser_use import Agent, Browser, ChatBrowserUse
+
+  browser = Browser(use_cloud=True)
+
   agent = Agent(
-      task=f"Go to x.com. Create a new post with this text: '{caption}'. "
+      task=f"Go to x.com. Log in with username x_user and password x_pass. "
+           f"Create a new post with this text: '{caption}'. "
            f"Upload the file at '{abs_path}' as media attachment. "
            f"Then click the Post button to publish it.",
       llm=ChatBrowserUse(),
       browser=browser,
-      use_vision=True,
+      sensitive_data={"x_user": os.getenv("X_USERNAME"), "x_pass": os.getenv("X_PASSWORD")},
+      use_vision=False,
       max_steps=25,
   )
+
+  result = await agent.run()
   ```
 - Returns `True`/`False` based on success
-- Cleans up browser in `finally` block
 
 ## Dependencies
 
 ### `requirements.txt`
 ```
 browser-use
-google-genai
 python-dotenv
-Pillow
 ```
 
 ### `.env.example`
 ```
-GEMINI_API_KEY=your-gemini-api-key
 BROWSER_USE_API_KEY=your-browser-use-api-key
+X_USERNAME=your-x-username
+X_PASSWORD=your-x-password
 ```
+
+## Browser-Use Cloud Setup
+
+1. **Get an API key** — Sign up at [cloud.browser-use.com](https://cloud.browser-use.com) and grab your API key.
+2. **Set the env var** — Add `BROWSER_USE_API_KEY=your-key` to your `.env` file. The SDK picks it up automatically.
+3. **That's it** — No local Chrome install, no browser profiles, no headless config. `Browser(use_cloud=True)` spins up a remote browser session on their infra.
+
+`ChatBrowserUse()` is the optimized model hosted by Browser-Use for driving the browser agent. It also uses the `BROWSER_USE_API_KEY`.
 
 ## How to Run
 ```bash
 # 1. Install deps
 pip install -r requirements.txt
 
-# 2. Copy and fill in API keys
+# 2. Copy and fill in keys
 cp .env.example .env
+# Edit .env with your BROWSER_USE_API_KEY, X_USERNAME, X_PASSWORD
 
-# 3. Drop images/videos into ./media/ folder
+# 3. Run with a file and caption
+python main.py ./photo.jpg "just vibes"
 
-# 4. Run (first run: log into X manually in the browser that opens)
+# Or run interactively
 python main.py
 ```
 
-On first run, browser-use will open a visible browser. Log into X manually — the session persists for future runs via the browser profile directory.
-
 ## Verification
-1. Place a test image in `./media/`
-2. Run `python main.py`
-3. Confirm a caption is generated and printed to terminal
-4. Approve the caption (type `y`)
-5. Watch the browser open, navigate to X, and post
-6. Verify the file moved to `./media/posted/`
-7. Check X to confirm the post appeared with correct caption + media
+1. Run `python main.py ./test.jpg "test post please ignore"`
+2. Approve the caption (type `y`)
+3. Watch the cloud browser agent log in, navigate, and post
+4. Check X to confirm the post appeared with correct caption + media
