@@ -17,7 +17,7 @@ import {
     Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 import { useSessions } from "@/lib/session-context";
 
@@ -107,6 +107,7 @@ export function MobileNav() {
                 </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 bg-sidebar border-sidebar-border w-72">
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <Sidebar />
             </SheetContent>
         </Sheet>
