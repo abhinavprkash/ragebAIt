@@ -46,21 +46,21 @@ Entry point. Accepts a media file path and description, then hands off to the po
 Handles browser automation via Browser-Use Cloud to post on X.
 
 - `async post_to_x(filepath: str, caption: str) -> bool`
-- Uses Browser-Use Cloud (no local browser needed):
+- Uses a Browser-Use Cloud profile (already logged into X, no credentials needed):
   ```python
   from browser_use import Agent, Browser, ChatBrowserUse
 
-  browser = Browser(use_cloud=True)
+  browser = Browser(
+      cloud_profile_id=os.getenv("BROWSER_USE_PROFILE_ID"),
+  )
 
   agent = Agent(
-      task=f"Go to x.com. Log in with username x_user and password x_pass. "
+      task=f"Go to x.com. You are already logged in. "
            f"Create a new post with this text: '{caption}'. "
            f"Upload the file at '{abs_path}' as media attachment. "
            f"Then click the Post button to publish it.",
       llm=ChatBrowserUse(),
       browser=browser,
-      sensitive_data={"x_user": os.getenv("X_USERNAME"), "x_pass": os.getenv("X_PASSWORD")},
-      use_vision=False,
       max_steps=25,
   )
 
@@ -77,17 +77,16 @@ Managed via `uv` and `pyproject.toml`:
 ### `.env.example`
 ```
 BROWSER_USE_API_KEY=your-browser-use-api-key
-X_USERNAME=your-x-username
-X_PASSWORD=your-x-password
+BROWSER_USE_PROFILE_ID=your-cloud-profile-id
 ```
 
 ## Browser-Use Cloud Setup
 
 1. **Get an API key** — Sign up at [cloud.browser-use.com](https://cloud.browser-use.com) and grab your API key.
-2. **Set the env var** — Add `BROWSER_USE_API_KEY=your-key` to your `.env` file. The SDK picks it up automatically.
-3. **That's it** — No local Chrome install, no browser profiles, no headless config. `Browser(use_cloud=True)` spins up a remote browser session on their infra.
+2. **Create a cloud profile** — In the Browser-Use Cloud dashboard, create a profile and log into X manually within that session. The cookies persist across runs.
+3. **Set env vars** — Add `BROWSER_USE_API_KEY` and `BROWSER_USE_PROFILE_ID` to your `.env` file.
 
-`ChatBrowserUse()` is the optimized model hosted by Browser-Use for driving the browser agent. It also uses the `BROWSER_USE_API_KEY`.
+`cloud_profile_id` syncs cookies/auth from the profile, so the agent starts already logged in — no credentials are passed to the LLM. `ChatBrowserUse()` is the optimized model hosted by Browser-Use for driving the browser agent.
 
 ## How to Run
 ```bash
@@ -96,7 +95,7 @@ uv sync
 
 # 2. Copy and fill in keys
 cp .env.example .env
-# Edit .env with your BROWSER_USE_API_KEY, X_USERNAME, X_PASSWORD
+# Edit .env with your BROWSER_USE_API_KEY and BROWSER_USE_PROFILE_ID
 
 # 3. Run with a file and caption
 uv run main.py ./photo.jpg "just vibes"
