@@ -19,14 +19,15 @@ uv run main.py                             # interactive mode
 Two-file design:
 
 - **main.py** — Entry point. Parses CLI args or prompts interactively, validates the media file, runs a Y/E/S confirmation loop, then calls `poster.post_to_x()`.
-- **poster.py** — Creates a Browser-Use Cloud session using a persistent `cloud_profile_id` (pre-authenticated, no credentials sent to the LLM). Instructs a `ChatBrowserUse()` agent to navigate x.com, compose a post, attach the media file, and publish.
+- **poster.py** — Creates a Browser-Use Cloud session using a persistent `cloud_profile_id` (pre-authenticated, no credentials sent to the LLM). Uploads the media file to the cloud session via the presigned URL API (`_upload_to_cloud_session()`), then instructs a `ChatBrowserUse()` agent to navigate x.com, compose a post, attach the uploaded file, and publish.
 
-The flow is linear: input → confirm → browser agent posts → report result.
+The flow is linear: input → confirm → upload media to cloud → browser agent posts → report result.
 
 ## Key Details
 
 - Uses `uv` for dependency management (pyproject.toml, not requirements.txt).
 - Browser-Use Cloud handles all browser infra — no local Chrome needed.
 - Authentication is via a cloud profile with saved cookies. The env vars are `BROWSER_USE_API_KEY` and `BROWSER_USE_PROFILE_ID`.
-- Supported media formats: `.jpg`, `.png`, `.gif`, `.webp`, `.mp4`, `.mov`.
+- Media is uploaded to the cloud browser session via `POST /api/v2/files/browsers/{session_id}/presigned-url` before the agent runs. This is necessary because the cloud browser cannot access local files.
+- Cloud-uploadable image formats: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`. Video formats (`.mp4`, `.mov`) are accepted by `main.py` but not yet supported by the presigned URL API.
 - Python 3.14+.
