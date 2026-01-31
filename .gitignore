@@ -55,3 +55,4 @@ htmlcov/
 .pytest_cache/
 
 uv.lock
+backend/.env
