@@ -6,10 +6,10 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load environment variables from backend/.env first, then fallback to CWD .env
+# Load environment variables from secret/.env
 BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(BASE_DIR / ".env")
-load_dotenv()
+SECRET_ENV = BASE_DIR.parent / "secret" / ".env"
+load_dotenv(SECRET_ENV)
 
 
 class Settings:

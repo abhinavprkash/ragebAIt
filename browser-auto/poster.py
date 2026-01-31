@@ -1,9 +1,11 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 from browser_use import Agent, Browser, ChatGoogle
 
-load_dotenv()
+SECRET_ENV = Path(__file__).resolve().parent.parent / "secret" / ".env"
+load_dotenv(SECRET_ENV)
 
 
 async def post_to_x(image_path: str, video_path: str, caption: str) -> bool:
