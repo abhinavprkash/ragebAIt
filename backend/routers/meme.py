@@ -33,6 +33,10 @@ class MemeGenerateResponse(BaseModel):
     image_prompt: str = Field(..., description="The prompt used to generate the meme")
 
 
+# In-memory store for meme data (mirrors video_store pattern)
+# In production, use Redis or database
+meme_store: dict[str, dict] = {}
+
 @router.post(
     "/api/meme/generate",
     response_model=MemeGenerateResponse,
@@ -102,6 +106,28 @@ async def generate_meme(request: MemeGenerateRequest):
         else:
             meme_url = f"file://{output_path}"
         
+        # Store meme data for retrieval later (mirrors video_store pattern)
+        meme_store[meme_id] = {
+            "meme_id": meme_id,
+            "meme_url": meme_url,
+            "meme_path": output_path,
+            "caption": result["caption"],
+            "style": result["style"],
+            "image_prompt": result["image_prompt"],
+            "source_video_id": request.video_id,
+            "source_frame_index": request.frame_index or len(frames) // 2,
+            "source_frame_base64": frame["image_base64"],
+            "context": context,
+            "video_context": {
+                "commentary_text": video_data.get("commentary_text", ""),
+                "funny_moment": video_data.get("funny_moment", {}),
+                "lens": str(video_data.get("lens", "")),
+                "duration": video_data.get("video_info", {}).get("duration", 0),
+            }
+        }
+        
+        print(f"[Meme] ✅ Meme ready! Meme ID: {meme_id}")
+        
         return MemeGenerateResponse(
             meme_id=meme_id,
             meme_url=meme_url,
@@ -155,6 +181,25 @@ async def list_styles():
         ]
     }
 
+@router.get("/api/meme/{meme_id}")
+async def get_meme(meme_id: str):
+    """Retrieve a generated meme by ID."""
+    meme = meme_store.get(meme_id)
+    if not meme:
+        raise HTTPException(status_code=404, detail="Meme not found")
+    
+    return {
+        "meme_id": meme.get("meme_id"),
+        "meme_url": meme.get("meme_url"),
+        "caption": meme.get("caption"),
+        "style": meme.get("style"),
+        "image_prompt": meme.get("image_prompt"),
+        "source_video_id": meme.get("source_video_id"),
+        "source_frame_index": meme.get("source_frame_index"),
+        "context": meme.get("context"),
+        "video_context": meme.get("video_context", {}),
+    }
+
 
 @router.get("/api/meme/templates")
 async def list_templates():
@@ -168,3 +213,8 @@ async def list_templates():
             }
         ]
     }
+
+
+def get_meme_store() -> dict[str, dict]:
+    """Get the in-memory meme store."""
+    return meme_store
