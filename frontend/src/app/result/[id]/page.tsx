@@ -5,12 +5,12 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Download, RefreshCw, Share2, UploadCloud, Image, Copy, Check } from "lucide-react";
+import { ArrowLeft, Download, Loader2, RefreshCw, Share2, UploadCloud, Image, Copy, Check } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-import { api, RoastResult } from "@/lib/api";
+import { api, RoastResult, ShareResult } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default function ResultPage() {
@@ -21,6 +21,7 @@ export default function ResultPage() {
     const [result, setResult] = useState<RoastResult | null>(null);
     const [isRegeneratingMeme, setIsRegeneratingMeme] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [shareStatus, setShareStatus] = useState<ShareResult["status"] | null>(null);
 
     // Polling Logic
     useEffect(() => {
@@ -92,10 +93,36 @@ export default function ResultPage() {
         }
     };
 
-    const handleShareToTwitter = () => {
-        const text = result?.caption || "Check out this AI-generated sports roast! 🔥";
-        const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-        window.open(url, '_blank');
+    const handleShareToTwitter = async () => {
+        if (shareStatus === "pending" || shareStatus === "posting") return;
+
+        setShareStatus("pending");
+        try {
+            const { share_id } = await api.shareToX();
+            setShareStatus("posting");
+
+            // Poll every 3 seconds
+            const poll = setInterval(async () => {
+                try {
+                    const data = await api.getShareStatus(share_id);
+                    setShareStatus(data.status);
+                    if (data.status === "completed") {
+                        clearInterval(poll);
+                        toast.success("Posted to X!");
+                    } else if (data.status === "failed") {
+                        clearInterval(poll);
+                        toast.error(data.error || "Failed to post to X");
+                    }
+                } catch {
+                    clearInterval(poll);
+                    setShareStatus("failed");
+                    toast.error("Lost connection while posting");
+                }
+            }, 3000);
+        } catch (error) {
+            setShareStatus("failed");
+            toast.error(error instanceof Error ? error.message : "Failed to start share");
+        }
     };
 
     return (
@@ -115,13 +142,22 @@ export default function ResultPage() {
                     </h1>
                 </div>
                 <div className="flex gap-2">
-                    <Button 
+                    <Button
                         className="bg-[#1DA1F2] hover:bg-[#1DA1F2]/90 text-white border-0"
                         onClick={handleShareToTwitter}
-                        disabled={status !== "completed"}
+                        disabled={status !== "completed" || shareStatus === "pending" || shareStatus === "posting"}
                     >
-                        <Share2 className="w-4 h-4 mr-2" />
-                        Share to X
+                        {shareStatus === "pending" || shareStatus === "posting" ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                {shareStatus === "pending" ? "Starting..." : "Posting..."}
+                            </>
+                        ) : (
+                            <>
+                                <Share2 className="w-4 h-4 mr-2" />
+                                {shareStatus === "completed" ? "Shared!" : shareStatus === "failed" ? "Retry Share" : "Share to X"}
+                            </>
+                        )}
                     </Button>
                 </div>
             </div>

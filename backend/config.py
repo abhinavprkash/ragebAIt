@@ -32,6 +32,9 @@ class Settings:
     
     # Temp directory for processing
     TEMP_DIR: Path = Path("/tmp/ragebait")
+
+    # Local media directory for browser automation
+    MEDIA_DIR: Path = BASE_DIR.parent / "browser-auto" / "media"
     
     # Gemini Model
     GEMINI_MODEL: str = "gemini-3-flash-preview"
@@ -39,6 +42,8 @@ class Settings:
     def __init__(self):
         # Create temp directory if it doesn't exist
         self.TEMP_DIR.mkdir(parents=True, exist_ok=True)
+        # Create media directory if it doesn't exist
+        self.MEDIA_DIR.mkdir(parents=True, exist_ok=True)
     
     def validate(self) -> list[str]:
         """Validate required settings. Returns list of missing configs."""

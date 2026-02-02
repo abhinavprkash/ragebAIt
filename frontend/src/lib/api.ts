@@ -23,6 +23,12 @@ export interface MemeResult {
   image_prompt: string;
 }
 
+export interface ShareResult {
+  share_id: string;
+  status: "pending" | "posting" | "completed" | "failed";
+  error?: string | null;
+}
+
 export interface RoastResult {
   job_id: string;
   status: "processing" | "completed" | "failed";
@@ -241,6 +247,36 @@ export const api = {
    */
   healthCheck: async () => {
     const response = await fetch(`${API_BASE}/api/health`);
+    return await response.json();
+  },
+
+  /**
+   * Start posting current media to X via browser automation
+   */
+  shareToX: async (): Promise<ShareResult> => {
+    const response = await fetch(`${API_BASE}/api/share/x`, {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Share failed: ${errorText}`);
+    }
+
+    return await response.json();
+  },
+
+  /**
+   * Poll the status of a share-to-X job
+   */
+  getShareStatus: async (shareId: string): Promise<ShareResult> => {
+    const response = await fetch(`${API_BASE}/api/share/${shareId}/status`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Share status check failed: ${errorText}`);
+    }
+
     return await response.json();
   },
 

@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
-from backend.routers import generate_router, meme_router
+from backend.routers import generate_router, meme_router, share_router
 from backend.models.schemas import HealthResponse
 
 
@@ -33,6 +33,7 @@ app.add_middleware(
 # Include routers
 app.include_router(generate_router)
 app.include_router(meme_router)
+app.include_router(share_router)
 
 
 @app.get("/", tags=["root"])

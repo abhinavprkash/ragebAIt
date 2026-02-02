@@ -4,6 +4,7 @@ Handles file uploads to Vercel Blob storage.
 """
 
 import httpx
+import shutil
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -128,6 +129,35 @@ class StorageClient:
     def is_available(self) -> bool:
         """Check if storage is configured."""
         return bool(self.token) or settings.MOCK_MODE
+
+    def clear_media(self):
+        """Clear all files in the browser-auto/media/ directory."""
+        media_dir = settings.MEDIA_DIR
+        if media_dir.exists():
+            for item in media_dir.iterdir():
+                if item.is_file():
+                    item.unlink()
+                elif item.is_dir():
+                    shutil.rmtree(item)
+        print(f"[Storage] Cleared media dir {media_dir}")
+
+    def save_to_media(self, file_path: str, media_filename: str, caption: str = ""):
+        """
+        Save a file to browser-auto/media/.
+
+        Args:
+            file_path: Source file path on disk
+            media_filename: Target filename (e.g. "video.mp4", "image.png")
+            caption: Caption text to write to caption.txt
+        """
+        media_dir = settings.MEDIA_DIR
+        media_dir.mkdir(parents=True, exist_ok=True)
+
+        shutil.copy2(file_path, media_dir / media_filename)
+
+        (media_dir / "caption.txt").write_text(caption)
+
+        print(f"[Storage] Saved {media_filename} + caption.txt to {media_dir}")
 
 
 # Singleton instance

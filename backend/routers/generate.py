@@ -70,6 +70,9 @@ async def generate_commentary(
     video_id = uuid.uuid4().hex[:12]
     
     try:
+        # Clear media dir so fresh video + meme can coexist
+        storage_client.clear_media()
+
         # Save uploaded video to temp file
         temp_video_path = settings.TEMP_DIR / f"{video_id}_input{file_ext}"
         
@@ -191,8 +194,12 @@ async def generate_commentary(
             else:
                 output_video_url = f"file://{clip_path}"
         
-        # Store video data for meme generation
+        # Save video + caption to browser-auto/media/
         commentary_text = " ".join([s.text for s in segments])
+        final_video_path = output_video_path if tts_client.is_available() else clip_path
+        storage_client.save_to_media(final_video_path, "video.mp4", commentary_text)
+
+        # Store video data for meme generation
         video_store[video_id] = {
             "video_path": clip_path,
             "original_video_path": str(temp_video_path),

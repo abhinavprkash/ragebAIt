@@ -4,6 +4,7 @@ Handles meme generation using Nano Banana (Gemini's native image generation).
 """
 
 import uuid
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -101,7 +102,11 @@ async def generate_meme(request: MemeGenerateRequest):
             meme_url = await storage_client.upload_from_path(output_path)
         else:
             meme_url = f"file://{output_path}"
-        
+
+        # Save image + caption to browser-auto/media/
+        ext = Path(output_path).suffix  # .png
+        storage_client.save_to_media(output_path, f"image{ext}", result["caption"])
+
         return MemeGenerateResponse(
             meme_id=meme_id,
             meme_url=meme_url,
